@@ -5,7 +5,7 @@ from streamlit.components.v1 import html
 st.set_page_config(layout="wide")
 st.title("PDF 自動スクロールビューア")
 
-uploaded_file = st.file_uploader("PDFをアップロードしてな", type="pdf")
+uploaded_file = st.file_uploader("PDFをアップロード", type="pdf")
 
 scroll_speed = st.slider(
     "スクロール速度（px / 秒）",
@@ -70,3 +70,4 @@ if uploaded_file:
     """
 
     html(html_code, height=900)
+
