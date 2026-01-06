@@ -3,19 +3,28 @@ import base64
 from streamlit.components.v1 import html
 
 st.set_page_config(layout="wide")
-st.title("PDF自動スクロール")
+st.title("🎸 楽譜用 PDF 自動スクロール")
 
 pdf = st.file_uploader("PDFアップロード", type="pdf")
-speed = st.slider("スクロール速度(px/秒)", 10, 300, 80)
 
-start = st.button("▶ 再生")
-stop = st.button("⏸ 停止")
+speed = st.slider("スクロール速度(px/秒)", 10, 300, 80)
+start_pos = st.number_input(
+    "スクロール開始位置(px)",
+    min_value=0,
+    value=0,
+    step=100
+)
+
+play = st.button("▶ 再生")
+pause = st.button("⏸ 停止")
+jump = st.button("⤵ 開始位置へ移動")
 
 if pdf:
     pdf_base64 = base64.b64encode(pdf.read()).decode()
 
-    auto = "true" if start else "false"
-    stopf = "true" if stop else "false"
+    play_js = "true" if play else "false"
+    pause_js = "true" if pause else "false"
+    jump_js = "true" if jump else "false"
 
     html_code = f"""
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -32,8 +41,22 @@ if pdf:
     const loadingTask = pdfjsLib.getDocument({{data: pdfData}});
     const container = document.getElementById("viewer");
 
-    let scrolling = {auto};
-    if ({stopf}) scrolling = false;
+    let scrolling = false;
+
+    // ▶ 再生
+    if ({play_js}) {{
+        scrolling = true;
+    }}
+
+    // ⏸ 停止
+    if ({pause_js}) {{
+        scrolling = false;
+    }}
+
+    // ⤵ 開始位置ジャンプ
+    if ({jump_js}) {{
+        container.scrollTop = {start_pos};
+    }}
 
     loadingTask.promise.then(pdf => {{
         for (let i = 1; i <= pdf.numPages; i++) {{
@@ -58,7 +81,7 @@ if pdf:
 
     setInterval(() => {{
         if (scrolling) {{
-            container.scrollBy(0, {speed}/10);
+            container.scrollBy(0, {speed} / 10);
         }}
     }}, 100);
     </script>
