@@ -3,71 +3,65 @@ import base64
 from streamlit.components.v1 import html
 
 st.set_page_config(layout="wide")
-st.title("PDF 自動スクロールビューア")
+st.title("PDF自動スクロール")
 
-uploaded_file = st.file_uploader("PDFをアップロード", type="pdf")
+pdf = st.file_uploader("PDFアップロード", type="pdf")
+speed = st.slider("スクロール速度(px/秒)", 10, 300, 80)
 
-scroll_speed = st.slider(
-    "スクロール速度（px / 秒）",
-    min_value=10,
-    max_value=300,
-    value=60,
-    step=10
-)
+start = st.button("▶ 再生")
+stop = st.button("⏸ 停止")
 
-start = st.button("▶ 自動スクロール開始")
-stop = st.button("■ 停止")
+if pdf:
+    pdf_base64 = base64.b64encode(pdf.read()).decode()
 
-if uploaded_file:
-    # PDFをbase64に変換
-    pdf_bytes = uploaded_file.read()
-    pdf_base64 = base64.b64encode(pdf_bytes).decode("utf-8")
-
-    # JS制御用フラグ
-    auto_scroll = "true" if start else "false"
-    stop_scroll = "true" if stop else "false"
+    auto = "true" if start else "false"
+    stopf = "true" if stop else "false"
 
     html_code = f"""
-    <html>
-    <head>
-        <style>
-            body {{
-                margin: 0;
-            }}
-            iframe {{
-                width: 100%;
-                height: 90vh;
-                border: none;
-            }}
-        </style>
-    </head>
-    <body>
-        <iframe id="pdfFrame"
-            src="data:application/pdf;base64,{pdf_base64}">
-        </iframe>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 
-        <script>
-            let scrolling = false;
-            let speed = {scroll_speed} / 10;
+    <div id="viewer" style="
+        height:90vh;
+        overflow-y:scroll;
+        background:#111;
+        padding:10px;
+    "></div>
 
-            if ({auto_scroll}) {{
-                scrolling = true;
-            }}
-            if ({stop_scroll}) {{
-                scrolling = false;
-            }}
+    <script>
+    const pdfData = atob("{pdf_base64}");
+    const loadingTask = pdfjsLib.getDocument({{data: pdfData}});
+    const container = document.getElementById("viewer");
 
-            function autoScroll() {{
-                if (scrolling) {{
-                    window.scrollBy(0, speed);
-                }}
-            }}
+    let scrolling = {auto};
+    if ({stopf}) scrolling = false;
 
-            setInterval(autoScroll, 100);
-        </script>
-    </body>
-    </html>
+    loadingTask.promise.then(pdf => {{
+        for (let i = 1; i <= pdf.numPages; i++) {{
+            pdf.getPage(i).then(page => {{
+                const scale = 1.5;
+                const viewport = page.getViewport({{ scale }});
+
+                const canvas = document.createElement("canvas");
+                const ctx = canvas.getContext("2d");
+                canvas.width = viewport.width;
+                canvas.height = viewport.height;
+
+                container.appendChild(canvas);
+
+                page.render({{
+                    canvasContext: ctx,
+                    viewport: viewport
+                }});
+            }});
+        }}
+    }});
+
+    setInterval(() => {{
+        if (scrolling) {{
+            container.scrollBy(0, {speed}/10);
+        }}
+    }}, 100);
+    </script>
     """
 
     html(html_code, height=900)
-
