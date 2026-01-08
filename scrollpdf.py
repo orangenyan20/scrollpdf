@@ -3,16 +3,17 @@ import base64
 from streamlit.components.v1 import html
 
 st.set_page_config(layout="wide")
-st.title("PDF自動スクロール")
+st.title("PDF 自動スクロール")
 
 pdf = st.file_uploader("PDFアップロード", type="pdf")
-speed = st.slider(
-    "スクロール速度(px/秒)",
-    1,    # ← 最低 1px/秒
-    50,   # ← 最高 50px/秒（楽譜向け）
-    10
-)
 
+speed = st.slider(
+    "スクロール速度（px / 秒）",
+    min_value=1,
+    max_value=50,
+    value=5,
+    step=1
+)
 
 if pdf:
     pdf_base64 = base64.b64encode(pdf.read()).decode()
@@ -21,6 +22,10 @@ if pdf:
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 
     <style>
+        body {{
+            margin: 0;
+        }}
+
         #viewer {{
             height: 90vh;
             overflow-y: scroll;
@@ -34,21 +39,22 @@ if pdf:
             right: 20px;
             z-index: 9999;
             display: flex;
-            gap: 10px;
+            gap: 12px;
         }}
 
         .btn {{
-            background: rgba(0,0,0,0.7);
-            color: white;
-            border: none;
-            padding: 14px 18px;
-            font-size: 18px;
+            width: 60px;
+            height: 60px;
             border-radius: 50%;
+            border: none;
+            font-size: 24px;
+            color: white;
+            background: rgba(0, 0, 0, 0.7);
             cursor: pointer;
         }}
 
         .btn:active {{
-            background: rgba(255,255,255,0.2);
+            background: rgba(255, 255, 255, 0.2);
         }}
     </style>
 
@@ -61,11 +67,12 @@ if pdf:
 
     <script>
         const pdfData = atob("{pdf_base64}");
-        const loadingTask = pdfjsLib.getDocument({{data: pdfData}});
+        const loadingTask = pdfjsLib.getDocument({{ data: pdfData }});
         const container = document.getElementById("viewer");
 
         let scrolling = false;
-        let speed = {speed} / 10;
+        let speed = {speed}; // px / 秒
+        let remainder = 0;   // 小数pxの貯金
 
         function startScroll() {{
             scrolling = true;
@@ -83,6 +90,7 @@ if pdf:
 
                     const canvas = document.createElement("canvas");
                     const ctx = canvas.getContext("2d");
+
                     canvas.width = viewport.width;
                     canvas.height = viewport.height;
 
@@ -96,21 +104,19 @@ if pdf:
             }}
         }});
 
+        // 100msごとにスクロール
         setInterval(() => {{
-            if (scrolling) {{
-                const pxPerTick = {speed} / 10; // 100msごと
+            if (!scrolling) return;
 
-setInterval(() => {{
-    if (scrolling) {{
-        container.scrollBy(0, pxPerTick);
-    }}
-}}, 100);
+            remainder += speed / 10; // 100ms分
 
+            if (remainder >= 1) {{
+                const move = Math.floor(remainder);
+                container.scrollBy(0, move);
+                remainder -= move;
             }}
         }}, 100);
     </script>
     """
 
     html(html_code, height=900)
-
-
