@@ -6,7 +6,13 @@ st.set_page_config(layout="wide")
 st.title("PDF自動スクロール")
 
 pdf = st.file_uploader("PDFアップロード", type="pdf")
-speed = st.slider("スクロール速度(px/秒)", 5, 150, 30)
+speed = st.slider(
+    "スクロール速度(px/秒)",
+    1,    # ← 最低 1px/秒
+    50,   # ← 最高 50px/秒（楽譜向け）
+    10
+)
+
 
 if pdf:
     pdf_base64 = base64.b64encode(pdf.read()).decode()
@@ -92,11 +98,19 @@ if pdf:
 
         setInterval(() => {{
             if (scrolling) {{
-                container.scrollBy(0, speed);
+                const pxPerTick = {speed} / 10; // 100msごと
+
+setInterval(() => {{
+    if (scrolling) {{
+        container.scrollBy(0, pxPerTick);
+    }}
+}}, 100);
+
             }}
         }}, 100);
     </script>
     """
 
     html(html_code, height=900)
+
 
